@@ -15,7 +15,11 @@ function formatDate(dateStr: string): string {
 }
 
 function getHeaderTitle(): string {
-  return '급식 메뉴 및 우리 아이 맞춤 알레르기 정보';
+  return '석암초 안전급식';
+}
+
+function getHeaderSubtitle(): string {
+  return '석암초 안전급식';
 }
 
 function isIOS(): boolean {
@@ -24,7 +28,7 @@ function isIOS(): boolean {
 
 function isStandalone(): boolean {
   return window.matchMedia('(display-mode: standalone)').matches ||
-    (navigator as any).standalone === true;
+    (navigator as Navigator & { standalone?: boolean }).standalone === true;
 }
 
 export function renderHome(container: HTMLElement, onSettings: () => void): void {
@@ -37,8 +41,9 @@ export function renderHome(container: HTMLElement, onSettings: () => void): void
     <div class="page">
       <div class="header header-card">
         <div class="header-text">
-          <div class="header-kicker">오늘의 급식 알림</div>
+          <div class="header-kicker">석암초 안전급식</div>
           <h1>${getHeaderTitle()}</h1>
+          <div class="header-subtitle">${getHeaderSubtitle()}</div>
           <div class="header-meta">${formatDate(today)} ${schoolName}</div>
         </div>
         <button class="header-icon-btn" id="settings-btn" title="설정" aria-label="설정">⚙</button>
@@ -46,7 +51,7 @@ export function renderHome(container: HTMLElement, onSettings: () => void): void
       <div class="content">
         ${isIOS() && !isStandalone() ? `
           <div class="ios-install-banner">
-            iPhone에서 알림을 받으려면 Safari에서 홈 화면에 추가한 뒤 이용해 주세요. (iOS 16.4+)
+            iPhone에서 알림을 받으려면 Safari에서 홈 화면에 추가한 뒤 사용해 주세요. (iOS 16.4+)
           </div>
         ` : ''}
         <div id="push-banner-slot"></div>
@@ -59,8 +64,8 @@ export function renderHome(container: HTMLElement, onSettings: () => void): void
 
   container.querySelector('#settings-btn')?.addEventListener('click', onSettings);
 
-  const mealContent = container.querySelector('#meal-content')!;
-  const pushBannerSlot = container.querySelector('#push-banner-slot')!;
+  const mealContent = container.querySelector('#meal-content') as HTMLElement;
+  const pushBannerSlot = container.querySelector('#push-banner-slot') as HTMLElement;
 
   void renderPushBanner();
   void loadMeal();
@@ -87,15 +92,16 @@ export function renderHome(container: HTMLElement, onSettings: () => void): void
     try {
       const meals = await getMeal(school.regionCode, school.schoolCode, today);
       renderMeals(meals);
-    } catch (err: any) {
-      if (err.code === 'API_KEY_PERMISSION') {
+    } catch (err: unknown) {
+      const apiError = err as { code?: string };
+      if (apiError.code === 'API_KEY_PERMISSION') {
         mealContent.innerHTML = `
           <div class="alert-banner danger">
             <span class="alert-icon">주의</span>
             <div class="alert-text">
               <div class="alert-title">API 권한이 필요합니다</div>
               <div class="alert-desc">
-                NEIS API에 급식식단정보 서비스 권한이 없습니다.<br><br>
+                NEIS API의 급식식단정보 서비스 권한이 없습니다.<br><br>
                 open.neis.go.kr에서 급식식단정보 서비스를 활성화해 주세요.
               </div>
             </div>
@@ -124,7 +130,7 @@ export function renderHome(container: HTMLElement, onSettings: () => void): void
       return;
     }
 
-    let activeMealIndex = meals.findIndex(meal => meal.mealTypeCode === '2');
+    let activeMealIndex = meals.findIndex((meal) => meal.mealTypeCode === '2');
     if (activeMealIndex < 0) activeMealIndex = 0;
 
     const el = document.createElement('div');
@@ -135,7 +141,7 @@ export function renderHome(container: HTMLElement, onSettings: () => void): void
       banner.innerHTML = `
         <span class="alert-icon">안내</span>
         <div class="alert-text">
-          <div class="alert-desc">설정에서 알레르기를 선택하면 주의 메뉴를 더 정확히 강조해 드립니다.</div>
+          <div class="alert-desc">설정에서 알레르기를 선택하면 주의 메뉴를 더 정확하게 강조해 드립니다.</div>
         </div>
       `;
       el.appendChild(banner);
