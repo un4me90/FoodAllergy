@@ -10,13 +10,11 @@ services:
     plan: free
     rootDir: .
     buildCommand: |
-      cd frontend && npm ci && npm run build
-      cd ../backend && npm ci && npm run build
+      cd frontend && npm ci --include=dev && npm run build
+      cd ../backend && npm ci --include=dev && npm run build
     startCommand: cd backend && npm start
     healthCheckPath: /api/health
     envVars:
-      - key: NODE_ENV
-        value: production
       - key: TZ
         value: Asia/Seoul
       - key: DATABASE_URL
