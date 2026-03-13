@@ -12,11 +12,10 @@ function getDatabaseUrl(): string {
 
 function getPool(): Pool {
   if (!pool) {
+    const useSsl = process.env.DATABASE_SSL !== 'false';
     pool = new Pool({
       connectionString: getDatabaseUrl(),
-      ssl: process.env.NODE_ENV === 'production'
-        ? { rejectUnauthorized: false }
-        : false,
+      ssl: useSsl ? { rejectUnauthorized: false } : false,
     });
   }
   return pool;
