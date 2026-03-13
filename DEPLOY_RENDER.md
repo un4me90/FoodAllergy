@@ -46,3 +46,47 @@ You need these environment values:
 - The current Blueprint uses Render free plans for testing.
 - Free services may sleep, so scheduled 7:00 AM push delivery is not guaranteed for production use.
 - For stable scheduled notifications, move the app and database to paid plans.
+
+## Keepalive For Free Testing
+
+To reduce sleep during free-plan testing, this repo includes:
+
+- `keepalive-render.ps1`
+
+Target URL:
+
+- `https://food-allergy-app.onrender.com/api/health`
+
+Recommended Windows scheduled task setup:
+
+1. Open PowerShell as Administrator.
+2. Run:
+
+```powershell
+$taskName = 'FoodAllergyRenderKeepAlive'
+$scriptPath = 'D:\SharedWork\00_VibeCoding\07_FoodAllergy\keepalive-render.ps1'
+schtasks /Create /F /SC MINUTE /MO 30 /TN $taskName /RU SYSTEM /RL HIGHEST /TR "powershell.exe -ExecutionPolicy Bypass -File `"$scriptPath`""
+```
+
+Verify:
+
+```powershell
+schtasks /Query /TN "FoodAllergyRenderKeepAlive" /V /FO LIST
+```
+
+Manual test:
+
+```powershell
+schtasks /Run /TN "FoodAllergyRenderKeepAlive"
+```
+
+Expected success state:
+
+- `Run As User: SYSTEM`
+- `Last Result: 0`
+
+Important:
+
+- This is only a temporary testing workaround.
+- It does not guarantee production-grade reliability.
+- Free Render instances may still behave differently depending on platform policy.
