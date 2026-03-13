@@ -18,8 +18,8 @@ function getHeaderTitle(): string {
   return '석암초 안전급식';
 }
 
-function getHeaderSubtitle(): string {
-  return '석암초 안전급식';
+function getHeaderLabel(): string {
+  return '급식 식단 및 알레르기 정보';
 }
 
 function isIOS(): boolean {
@@ -35,16 +35,16 @@ export function renderHome(container: HTMLElement, onSettings: () => void): void
   const school = getSchool();
   const userAllergens = getAllergens();
   const today = getTodayDateString();
-  const schoolName = school?.name || '학교';
 
   container.innerHTML = `
     <div class="page">
       <div class="header header-card">
         <div class="header-text">
-          <div class="header-kicker">석암초 안전급식</div>
+          <div class="header-topline">
+            <span class="header-date">${formatDate(today)}</span>
+            <span class="header-label">${getHeaderLabel()}</span>
+          </div>
           <h1>${getHeaderTitle()}</h1>
-          <div class="header-subtitle">${getHeaderSubtitle()}</div>
-          <div class="header-meta">${formatDate(today)} ${schoolName}</div>
         </div>
         <button class="header-icon-btn" id="settings-btn" title="설정" aria-label="설정">⚙</button>
       </div>
