@@ -1,0 +1,8 @@
+backend/node_modules/
+frontend/node_modules/
+backend/dist/
+frontend/dist/
+backend/.env
+backend/subscriptions.json
+backend/meal-cache.json
+*.log

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>오프라인 - 급식 알레르기 알림</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f8fafc; color: #334155; }
+    .container { text-align: center; padding: 2rem; }
+    .icon { font-size: 4rem; margin-bottom: 1rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    p { color: #64748b; }
+    button { margin-top: 1.5rem; padding: 0.75rem 2rem; background: #2563eb; color: white; border: none; border-radius: 0.5rem; font-size: 1rem; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📡</div>
+    <h1>인터넷 연결 없음</h1>
+    <p>네트워크 연결을 확인한 후 다시 시도해주세요.</p>
+    <button onclick="window.location.reload()">다시 시도</button>
+  </div>
+</body>
+</html>
