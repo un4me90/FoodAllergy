@@ -1,18 +1,16 @@
 import { createAllergenCheckboxes } from '../components/AllergenCheckboxes';
 import { testPush } from '../services/api';
 import {
-  isNotificationSupported,
   getNotificationPermission,
-  requestAndSubscribe,
-  unsubscribe,
+  hasStoredSubscription,
+  isNotificationSupported,
+  isPushSubscriptionSupported,
   isSubscribed,
+  requestAndSubscribe,
   syncSubscriptionPreferences,
+  unsubscribe,
 } from '../services/push';
-import {
-  getAllergens,
-  setAllergens,
-  clearSetup,
-} from '../services/storage';
+import { clearSetup, getAllergens, setAllergens } from '../services/storage';
 
 const FIXED_SCHOOL_NAME = '인천석암초등학교';
 
@@ -22,7 +20,7 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
   container.innerHTML = `
     <div class="page">
       <div class="header">
-        <button class="header-btn" id="back-btn">←</button>
+        <button class="header-btn" id="back-btn" aria-label="뒤로">←</button>
         <h1>설정</h1>
         <button class="btn btn-primary" id="save-btn" style="width:auto;padding:0.5rem 1.25rem;font-size:0.9375rem">저장</button>
       </div>
@@ -36,7 +34,7 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
         </div>
 
         <div class="settings-section">
-          <div class="settings-section-title">내 알레르기</div>
+          <div class="settings-section-title">알레르기</div>
           <div class="card" style="padding:1rem">
             <div id="allergen-mount"></div>
           </div>
@@ -93,23 +91,14 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
   async function renderNotificationUI() {
     const notifCard = container.querySelector('#notification-card')!;
 
-    if (!isNotificationSupported()) {
-      notifCard.innerHTML = `
-        <div style="color:#64748b;font-size:0.9375rem">
-          이 브라우저는 푸시 알림을 지원하지 않습니다.
-        </div>
-      `;
-      return;
-    }
-
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-    const standalone = window.matchMedia('(display-mode: standalone)').matches ||
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
       (navigator as any).standalone === true;
 
-    if (isIOS && !standalone) {
+    if (isIOS && !isStandalone) {
       notifCard.innerHTML = `
         <div style="font-size:0.9375rem;color:#64748b;line-height:1.6">
-          iOS에서는 Safari에서 홈 화면에 추가한 뒤 알림을 켜야 합니다.<br>
+          iPhone에서는 Safari에서 홈 화면에 추가한 뒤 알림을 켤 수 있습니다.<br>
           1. Safari 공유 버튼 탭<br>
           2. 홈 화면에 추가 선택<br>
           3. 홈 화면 아이콘으로 앱 실행<br>
@@ -119,8 +108,28 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
       return;
     }
 
+    if (!isNotificationSupported()) {
+      notifCard.innerHTML = `
+        <div style="color:#64748b;font-size:0.9375rem">
+          이 브라우저는 알림 기능을 지원하지 않습니다.
+        </div>
+      `;
+      return;
+    }
+
+    if (!isPushSubscriptionSupported()) {
+      notifCard.innerHTML = `
+        <div style="color:#64748b;font-size:0.9375rem;line-height:1.6">
+          이 브라우저 환경에서는 푸시 알림을 사용할 수 없습니다.<br>
+          Android는 Chrome, iPhone은 Safari 홈 화면 앱에서 다시 시도해 주세요.
+        </div>
+      `;
+      return;
+    }
+
     const permission = getNotificationPermission();
     const subscribed = await isSubscribed();
+    const locallyStored = hasStoredSubscription();
 
     notifCard.innerHTML = '';
 
@@ -130,12 +139,13 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
 
     const label = document.createElement('div');
     label.innerHTML = `
-      <div style="font-weight:600">오전 7시 급식 알림</div>
+      <div style="font-weight:600">매일 아침 급식 알림</div>
       <div style="font-size:0.875rem;color:#64748b;margin-top:0.125rem">
         ${permission === 'denied'
-          ? '브라우저 알림 권한이 차단되어 있습니다. 브라우저 설정에서 허용해 주세요.'
+          ? '브라우저 알림 권한이 차단되었습니다. 브라우저 설정에서 허용해주세요.'
           : '당일 급식 메뉴와 내 알레르기 주의 정보를 함께 보내드립니다.'}
       </div>
+      ${locallyStored ? '<div style="font-size:0.8rem;color:#16a34a;margin-top:0.35rem">이 기기에는 알림 설정 정보가 저장되어 있습니다.</div>' : ''}
     `;
 
     const toggleWrap = document.createElement('label');

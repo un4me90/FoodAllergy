@@ -9,12 +9,20 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 export function isNotificationSupported(): boolean {
-  return 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+  return 'Notification' in window && 'serviceWorker' in navigator;
+}
+
+export function isPushSubscriptionSupported(): boolean {
+  return isNotificationSupported() && 'PushManager' in window;
 }
 
 export function getNotificationPermission(): NotificationPermission {
   if (!('Notification' in window)) return 'denied';
   return Notification.permission;
+}
+
+export function hasStoredSubscription(): boolean {
+  return getPushSubscription() !== null;
 }
 
 async function saveSubscription(subscription: PushSubscriptionJSON): Promise<void> {
@@ -35,7 +43,11 @@ async function saveSubscription(subscription: PushSubscriptionJSON): Promise<voi
 
 export async function requestAndSubscribe(): Promise<{ success: boolean; message: string }> {
   if (!isNotificationSupported()) {
-    return { success: false, message: '이 브라우저는 푸시 알림을 지원하지 않습니다.' };
+    return { success: false, message: '이 브라우저는 알림 기능을 지원하지 않습니다.' };
+  }
+
+  if (!isPushSubscriptionSupported()) {
+    return { success: false, message: '이 브라우저 환경에서는 푸시 알림을 사용할 수 없습니다.' };
   }
 
   const school = getSchool();
@@ -82,7 +94,9 @@ export async function requestAndSubscribe(): Promise<{ success: boolean; message
 
 export async function syncSubscriptionPreferences(): Promise<void> {
   const registration = await navigator.serviceWorker.ready;
-  const pushSub = await registration.pushManager.getSubscription();
+  const pushSub = 'PushManager' in window
+    ? await registration.pushManager.getSubscription()
+    : null;
   const subJson = pushSub?.toJSON() || getPushSubscription();
 
   if (!subJson) return;
@@ -92,11 +106,14 @@ export async function syncSubscriptionPreferences(): Promise<void> {
 export async function unsubscribe(): Promise<void> {
   const subJson = getPushSubscription();
   const registration = await navigator.serviceWorker.ready;
-  const pushSub = await registration.pushManager.getSubscription();
+  const pushSub = 'PushManager' in window
+    ? await registration.pushManager.getSubscription()
+    : null;
 
   if (pushSub) {
     await pushSub.unsubscribe();
   }
+
   if (subJson?.endpoint) {
     try {
       await unsubscribePush(subJson.endpoint);
@@ -104,12 +121,20 @@ export async function unsubscribe(): Promise<void> {
       // Ignore server-side removal errors.
     }
   }
+
   setPushSubscription(null);
 }
 
 export async function isSubscribed(): Promise<boolean> {
-  if (!isNotificationSupported()) return false;
+  if (hasStoredSubscription()) return true;
+  if (!isPushSubscriptionSupported()) return false;
+
   const registration = await navigator.serviceWorker.ready;
   const sub = await registration.pushManager.getSubscription();
-  return sub !== null;
+  if (sub) {
+    setPushSubscription(sub.toJSON());
+    return true;
+  }
+
+  return false;
 }
