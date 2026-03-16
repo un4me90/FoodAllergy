@@ -2,7 +2,7 @@
   "name": "food-allergy-app",
   "version": "1.0.0",
   "scripts": {
-    "build": "cd frontend && npm install && npm run build && cd ../backend && npm install && npm run build",
+    "build": "npm --prefix frontend ci --include=dev && npm --prefix frontend run build && npm --prefix backend ci && npm --prefix backend run build",
     "start": "node backend/dist/index.js"
   },
   "engines": {
