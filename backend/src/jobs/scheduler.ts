@@ -111,6 +111,30 @@ export async function prefetchDailyMeals(date = getTodayDate()): Promise<void> {
   }
 }
 
+export async function sendNotificationToSub(
+  sub: PushSubscriptionRecord,
+  titlePrefix = '',
+  date = getTodayDate()
+): Promise<void> {
+  const meals = await getMealsForSchool(sub.regionCode, sub.schoolCode, date);
+  const meal = getPrimaryMeal(meals);
+  if (!meal) return;
+
+  const mealSummary = buildMealSummary(meal);
+  const warningSummary = buildWarningSummary(meal, sub.allergens);
+  const title = titlePrefix
+    ? `${titlePrefix} ${meal.mealType} 급식 안내`
+    : `오늘 ${meal.mealType} 급식 안내`;
+
+  await sendPush(sub, {
+    title,
+    body: `메뉴: ${mealSummary} | 알레르기 주의: ${warningSummary}`,
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-72.png',
+    data: { url: '/' },
+  });
+}
+
 export async function runDailyNotification(date = getTodayDate()): Promise<void> {
   console.log(`[scheduler] daily notification start: ${date}`);
   const subscriptions = await getAll();
@@ -155,6 +179,25 @@ export async function runDailyNotification(date = getTodayDate()): Promise<void>
   console.log('[scheduler] daily notification finished.');
 }
 
+export async function runLunchReminder(date = getTodayDate()): Promise<void> {
+  console.log(`[scheduler] lunch reminder start: ${date}`);
+  const subscriptions = await getAll();
+  if (subscriptions.length === 0) {
+    console.log('[scheduler] no subscriptions; exiting.');
+    return;
+  }
+
+  for (const sub of subscriptions) {
+    try {
+      await sendNotificationToSub(sub, '🍱 점심 전', date);
+    } catch (err) {
+      console.error(`[scheduler] lunch reminder failed for ${sub.endpoint.slice(0, 40)}:`, err);
+    }
+  }
+
+  console.log('[scheduler] lunch reminder finished.');
+}
+
 export function startScheduler(): void {
   cron.schedule('30 5 * * *', () => {
     void prefetchDailyMeals();
@@ -168,10 +211,17 @@ export function startScheduler(): void {
     timezone: 'Asia/Seoul',
   });
 
+  cron.schedule('0 11 * * *', () => {
+    void runLunchReminder();
+  }, {
+    timezone: 'Asia/Seoul',
+  });
+
   void prefetchDailyMeals().catch(err => {
     console.error('[scheduler] startup prefetch failed:', err);
   });
 
   console.log('[scheduler] prefetch scheduled at 05:30 Asia/Seoul');
   console.log('[scheduler] notifications scheduled at 07:00 Asia/Seoul');
+  console.log('[scheduler] lunch reminder scheduled at 11:00 Asia/Seoul');
 }

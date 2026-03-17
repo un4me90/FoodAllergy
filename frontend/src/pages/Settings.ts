@@ -175,7 +175,9 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
         testBtn.disabled = true;
         testBtn.textContent = '전송 중...';
         try {
-          await testPush();
+          const reg = await navigator.serviceWorker.ready;
+          const sub = await reg.pushManager.getSubscription();
+          await testPush(sub?.endpoint);
           testBtn.textContent = '전송 완료';
         } catch {
           testBtn.textContent = '전송 실패';

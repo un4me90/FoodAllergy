@@ -45,6 +45,24 @@ export async function getAll(): Promise<PushSubscriptionRecord[]> {
   }));
 }
 
+export async function getByEndpoint(endpoint: string): Promise<PushSubscriptionRecord | null> {
+  const result = await query(
+    `SELECT endpoint, p256dh, auth, school_code, region_code, allergens
+     FROM push_subscriptions WHERE endpoint = $1`,
+    [endpoint]
+  );
+  if (result.rows.length === 0) return null;
+  const row = result.rows[0];
+  return {
+    endpoint: row.endpoint,
+    p256dh: row.p256dh,
+    auth: row.auth,
+    schoolCode: row.school_code,
+    regionCode: row.region_code,
+    allergens: Array.isArray(row.allergens) ? row.allergens : JSON.parse(row.allergens || '[]'),
+  };
+}
+
 export async function deleteByEndpoint(endpoint: string): Promise<void> {
   await query('DELETE FROM push_subscriptions WHERE endpoint = $1', [endpoint]);
 }

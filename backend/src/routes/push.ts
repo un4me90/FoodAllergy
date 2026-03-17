@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { upsert, deleteByEndpoint } from '../db/subscriptions';
+import { upsert, deleteByEndpoint, getByEndpoint } from '../db/subscriptions';
 import { getVapidPublicKey } from '../services/webpush';
-import { runDailyNotification } from '../jobs/scheduler';
+import { runDailyNotification, sendNotificationToSub } from '../jobs/scheduler';
 
 const router = Router();
 
@@ -57,9 +57,17 @@ router.delete('/subscribe', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/test', async (_req: Request, res: Response) => {
+router.post('/test', async (req: Request, res: Response) => {
+  const { endpoint } = req.body;
+
   try {
-    await runDailyNotification();
+    if (endpoint) {
+      const sub = await getByEndpoint(endpoint);
+      if (!sub) return res.status(404).json({ error: 'Subscription not found.' });
+      await sendNotificationToSub(sub);
+    } else {
+      await runDailyNotification();
+    }
     return res.json({ success: true, message: 'Test notifications sent.' });
   } catch (err) {
     console.error('[push] test notification failed:', err);

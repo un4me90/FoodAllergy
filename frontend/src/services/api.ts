@@ -68,6 +68,10 @@ export async function unsubscribePush(endpoint: string): Promise<void> {
   });
 }
 
-export async function testPush(): Promise<void> {
-  await request('/api/push/test', { method: 'POST' });
+export async function testPush(endpoint?: string): Promise<void> {
+  await request('/api/push/test', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(endpoint ? { endpoint } : {}),
+  });
 }
