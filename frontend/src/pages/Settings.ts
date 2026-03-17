@@ -175,17 +175,19 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
         testBtn.disabled = true;
         testBtn.textContent = '전송 중...';
         try {
+          // Ensure this device's subscription is in DB before testing
+          await syncSubscriptionPreferences();
           const reg = await navigator.serviceWorker.ready;
           const sub = await reg.pushManager.getSubscription();
           await testPush(sub?.endpoint);
-          testBtn.textContent = '전송 완료';
-        } catch {
-          testBtn.textContent = '전송 실패';
+          testBtn.textContent = '전송 완료 ✓';
+        } catch (err: any) {
+          testBtn.textContent = `전송 실패: ${err?.message || '알 수 없는 오류'}`;
         }
         setTimeout(() => {
           testBtn.textContent = '테스트 알림 보내기';
           testBtn.disabled = false;
-        }, 3000);
+        }, 4000);
       });
       notifCard.appendChild(testBtn);
     }
