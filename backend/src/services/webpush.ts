@@ -8,7 +8,7 @@ function initVapid(): void {
   if (initialized) return;
   const publicKey = process.env.VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
-  const email = process.env.VAPID_EMAIL || 'mailto:admin@foodallergy.local';
+  const email = process.env.VAPID_EMAIL || 'https://food-allergy-app.onrender.com';
 
   if (!publicKey || !privateKey) {
     console.warn('[webpush] VAPID 키가 설정되지 않았습니다. .env 파일을 확인하세요.');
