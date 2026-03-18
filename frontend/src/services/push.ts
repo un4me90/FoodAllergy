@@ -126,7 +126,9 @@ export async function unsubscribe(): Promise<void> {
 }
 
 export async function forceResubscribe(): Promise<{ success: boolean; message: string }> {
-  // Clear all push subscriptions and unregister all service workers
+  // Clear existing push subscriptions but DO NOT unregister the SW.
+  // On iOS, unregistering the SW makes navigator.serviceWorker.controller null
+  // and pushManager.subscribe() requires an active controller to work.
   const registrations = await navigator.serviceWorker.getRegistrations();
   for (const reg of registrations) {
     const pushSub = await reg.pushManager.getSubscription().catch(() => null);
@@ -134,21 +136,19 @@ export async function forceResubscribe(): Promise<{ success: boolean; message: s
       try { await unsubscribePush(pushSub.endpoint); } catch { /* ignore */ }
       await pushSub.unsubscribe().catch(() => null);
     }
-    await reg.unregister();
   }
   setPushSubscription(null);
 
-  // Re-register sw.js and wait until it is fully active
-  await navigator.serviceWorker.register('/sw.js');
-  const activeReg = await waitForActiveSW();
-  if (!activeReg) {
-    return { success: false, message: '서비스 워커 활성화에 실패했습니다. 앱을 새로고침 후 다시 시도해주세요.' };
-  }
-
-  // Re-request notification permission
+  // Request notification permission
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') {
-    return { success: false, message: `알림 권한이 거부됨: ${permission}. iOS 설정에서 알림을 허용해주세요.` };
+    return { success: false, message: `알림 권한 거부됨 (${permission}). iOS 설정 앱 → 석암초 안전급식 → 알림을 확인해주세요.` };
+  }
+
+  // Use the already-active SW (do not re-register)
+  const activeReg = await waitForActiveSW();
+  if (!activeReg) {
+    return { success: false, message: '서비스 워커가 없습니다. 앱을 완전히 닫고 다시 열어주세요.' };
   }
 
   // Get VAPID key
@@ -159,7 +159,7 @@ export async function forceResubscribe(): Promise<{ success: boolean; message: s
     return { success: false, message: 'VAPID 키를 가져오지 못했습니다.' };
   }
 
-  // Subscribe using the active registration
+  // Re-subscribe using the existing active SW
   let subscription: PushSubscription;
   try {
     subscription = await activeReg.pushManager.subscribe({
@@ -176,9 +176,7 @@ export async function forceResubscribe(): Promise<{ success: boolean; message: s
     return { success: false, message: `서버 저장 실패: ${err?.message}` };
   }
 
-  // Reload so the new SW takes control of the page before testing
-  setTimeout(() => window.location.reload(), 1500);
-  return { success: true, message: '알림 구독이 초기화되었습니다. 잠시 후 앱이 새로고침됩니다.' };
+  return { success: true, message: '알림 구독이 초기화되었습니다. 테스트 알림을 눌러 확인해보세요.' };
 }
 
 function waitForActiveSW(): Promise<ServiceWorkerRegistration | null> {
