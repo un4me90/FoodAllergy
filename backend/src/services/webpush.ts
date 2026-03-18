@@ -48,7 +48,7 @@ export async function sendPush(
     } else {
       console.error(`[webpush] 발송 실패 (${err.statusCode}):`, err.message);
     }
-    if (throwOnError) throw new Error(`Push 발송 실패 (HTTP ${err.statusCode}): ${err.message}`);
+    if (throwOnError) throw new Error(`Push 발송 실패 (HTTP ${err.statusCode}): ${err.body || err.message}`);
   }
 }
 
