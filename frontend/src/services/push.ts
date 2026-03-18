@@ -145,6 +145,12 @@ export async function forceResubscribe(): Promise<{ success: boolean; message: s
     return { success: false, message: '서비스 워커 활성화에 실패했습니다. 앱을 새로고침 후 다시 시도해주세요.' };
   }
 
+  // Re-request notification permission
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') {
+    return { success: false, message: `알림 권한이 거부됨: ${permission}. iOS 설정에서 알림을 허용해주세요.` };
+  }
+
   // Get VAPID key
   let vapidKey: string;
   try {
@@ -161,7 +167,7 @@ export async function forceResubscribe(): Promise<{ success: boolean; message: s
       applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
     });
   } catch (err: any) {
-    return { success: false, message: `푸시 구독 실패: ${err?.message || '알림 권한을 확인해주세요.'}` };
+    return { success: false, message: `푸시 구독 실패: ${err?.message || '알 수 없는 오류'}` };
   }
 
   try {
@@ -173,28 +179,9 @@ export async function forceResubscribe(): Promise<{ success: boolean; message: s
   return { success: true, message: '알림 구독이 초기화되었습니다. 테스트 알림을 눌러 확인해보세요.' };
 }
 
-function waitForActiveSW(timeoutMs = 10000): Promise<ServiceWorkerRegistration | null> {
-  return new Promise(resolve => {
-    const timer = setTimeout(() => resolve(null), timeoutMs);
-
-    function check() {
-      navigator.serviceWorker.ready.then(reg => {
-        clearTimeout(timer);
-        resolve(reg);
-      });
-    }
-
-    // Poll until ready
-    const interval = setInterval(() => {
-      if (navigator.serviceWorker.controller) {
-        clearInterval(interval);
-        check();
-      }
-    }, 200);
-
-    // Also try immediately
-    check();
-  });
+function waitForActiveSW(): Promise<ServiceWorkerRegistration | null> {
+  const timeout = new Promise<null>(resolve => setTimeout(() => resolve(null), 10000));
+  return Promise.race([navigator.serviceWorker.ready, timeout]);
 }
 
 export async function isSubscribed(): Promise<boolean> {
