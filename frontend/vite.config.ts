@@ -16,7 +16,7 @@ export default defineConfig({
   plugins: [
     VitePWA({
       strategies: 'generateSW',
-      registerType: 'autoUpdate',
+      injectRegister: false,
       workbox: {
         globPatterns: [],
         swDest: 'dist/wb-sw.js',
