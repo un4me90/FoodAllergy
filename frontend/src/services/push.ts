@@ -176,7 +176,9 @@ export async function forceResubscribe(): Promise<{ success: boolean; message: s
     return { success: false, message: `서버 저장 실패: ${err?.message}` };
   }
 
-  return { success: true, message: '알림 구독이 초기화되었습니다. 테스트 알림을 눌러 확인해보세요.' };
+  // Reload so the new SW takes control of the page before testing
+  setTimeout(() => window.location.reload(), 1500);
+  return { success: true, message: '알림 구독이 초기화되었습니다. 잠시 후 앱이 새로고침됩니다.' };
 }
 
 function waitForActiveSW(): Promise<ServiceWorkerRegistration | null> {

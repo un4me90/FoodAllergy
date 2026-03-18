@@ -11,7 +11,7 @@ import {
   unsubscribe,
   forceResubscribe,
 } from '../services/push';
-import { clearSetup, getAllergens, setAllergens } from '../services/storage';
+import { clearSetup, getAllergens, setAllergens, getPushSubscription } from '../services/storage';
 
 const FIXED_SCHOOL_NAME = '인천석암초등학교';
 
@@ -176,10 +176,17 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
         testBtn.disabled = true;
         testBtn.textContent = '전송 중...';
         try {
-          await syncSubscriptionPreferences();
-          const reg = await navigator.serviceWorker.ready;
-          const sub = await reg.pushManager.getSubscription();
-          await testPush(sub?.endpoint);
+          // Try to sync subscription to DB (may fail if SW not yet controlling page)
+          try { await syncSubscriptionPreferences(); } catch { /* ignore */ }
+          // Get endpoint: prefer live pushManager, fall back to localStorage
+          let endpoint: string | undefined;
+          try {
+            const reg = await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.getSubscription();
+            endpoint = sub?.endpoint;
+          } catch { /* ignore */ }
+          if (!endpoint) endpoint = getPushSubscription()?.endpoint ?? undefined;
+          await testPush(endpoint);
           testBtn.textContent = '전송 완료 ✓';
         } catch (err: any) {
           testBtn.textContent = `전송 실패: ${err?.message || '알 수 없는 오류'}`;
