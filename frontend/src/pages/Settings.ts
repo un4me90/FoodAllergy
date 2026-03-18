@@ -9,6 +9,7 @@ import {
   requestAndSubscribe,
   syncSubscriptionPreferences,
   unsubscribe,
+  forceResubscribe,
 } from '../services/push';
 import { clearSetup, getAllergens, setAllergens } from '../services/storage';
 
@@ -175,7 +176,6 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
         testBtn.disabled = true;
         testBtn.textContent = '전송 중...';
         try {
-          // Ensure this device's subscription is in DB before testing
           await syncSubscriptionPreferences();
           const reg = await navigator.serviceWorker.ready;
           const sub = await reg.pushManager.getSubscription();
@@ -190,22 +190,50 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
         }, 4000);
       });
       notifCard.appendChild(testBtn);
+
+      const resetBtn = document.createElement('button');
+      resetBtn.className = 'btn btn-ghost';
+      resetBtn.style.cssText = 'margin-top:0.5rem;font-size:0.875rem;color:#f59e0b';
+      resetBtn.textContent = '알림 구독 초기화 (문제 해결용)';
+      resetBtn.addEventListener('click', async () => {
+        resetBtn.disabled = true;
+        resetBtn.textContent = '초기화 중...';
+        try {
+          const result = await forceResubscribe();
+          alert(result.message);
+          void renderNotificationUI();
+        } catch (err: any) {
+          alert(`초기화 실패: ${err?.message || '알 수 없는 오류'}`);
+          resetBtn.disabled = false;
+          resetBtn.textContent = '알림 구독 초기화 (문제 해결용)';
+        }
+      });
+      notifCard.appendChild(resetBtn);
     }
 
     toggleInput.addEventListener('change', async () => {
       toggleInput.disabled = true;
       if (toggleInput.checked) {
-        const result = await requestAndSubscribe();
-        if (!result.success) {
-          alert(result.message);
+        try {
+          const result = await requestAndSubscribe();
+          if (!result.success) {
+            alert(result.message);
+            toggleInput.checked = false;
+          } else {
+            alert(result.message);
+            void renderNotificationUI();
+          }
+        } catch (err: any) {
+          alert(`구독 실패: ${err?.message || '알 수 없는 오류'}`);
           toggleInput.checked = false;
-        } else {
-          alert(result.message);
-          void renderNotificationUI();
         }
       } else {
-        await unsubscribe();
-        alert('알림이 해제되었습니다.');
+        try {
+          await unsubscribe();
+          alert('알림이 해제되었습니다.');
+        } catch (err: any) {
+          alert(`해제 실패: ${err?.message || '알 수 없는 오류'}`);
+        }
         void renderNotificationUI();
       }
       toggleInput.disabled = false;

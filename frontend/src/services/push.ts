@@ -125,6 +125,50 @@ export async function unsubscribe(): Promise<void> {
   setPushSubscription(null);
 }
 
+export async function forceResubscribe(): Promise<{ success: boolean; message: string }> {
+  // Unregister ALL service workers and clear all push subscriptions
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  for (const reg of registrations) {
+    const pushSub = await reg.pushManager.getSubscription().catch(() => null);
+    if (pushSub) {
+      try { await unsubscribePush(pushSub.endpoint); } catch { /* ignore */ }
+      await pushSub.unsubscribe().catch(() => null);
+    }
+    await reg.unregister();
+  }
+  setPushSubscription(null);
+
+  // Re-register sw.js
+  const reg = await navigator.serviceWorker.register('/sw.js');
+  await navigator.serviceWorker.ready;
+
+  // Re-subscribe
+  let vapidKey: string;
+  try {
+    vapidKey = await getVapidPublicKey();
+  } catch {
+    return { success: false, message: 'VAPID 키를 가져오지 못했습니다.' };
+  }
+
+  let subscription: PushSubscription;
+  try {
+    subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
+    });
+  } catch {
+    return { success: false, message: '푸시 구독 생성에 실패했습니다. 알림 권한을 확인해주세요.' };
+  }
+
+  try {
+    await saveSubscription(subscription.toJSON());
+  } catch (err: any) {
+    return { success: false, message: `서버 저장 실패: ${err?.message}` };
+  }
+
+  return { success: true, message: '알림 구독이 초기화되었습니다. 테스트 알림을 눌러 확인해보세요.' };
+}
+
 export async function isSubscribed(): Promise<boolean> {
   if (hasStoredSubscription()) return true;
   if (!isPushSubscriptionSupported()) return false;
