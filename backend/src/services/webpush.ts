@@ -21,7 +21,8 @@ function initVapid(): void {
 
 export async function sendPush(
   record: PushSubscriptionRecord,
-  payload: NotificationPayload
+  payload: NotificationPayload,
+  throwOnError = false
 ): Promise<void> {
   initVapid();
   if (!initialized) {
@@ -43,10 +44,11 @@ export async function sendPush(
   } catch (err: any) {
     if (err.statusCode === 410 || err.statusCode === 404) {
       console.log(`[webpush] 만료된 구독 삭제: ${record.endpoint.slice(0, 50)}...`);
-      deleteByEndpoint(record.endpoint);
+      await deleteByEndpoint(record.endpoint);
     } else {
       console.error(`[webpush] 발송 실패 (${err.statusCode}):`, err.message);
     }
+    if (throwOnError) throw new Error(`Push 발송 실패 (HTTP ${err.statusCode}): ${err.message}`);
   }
 }
 

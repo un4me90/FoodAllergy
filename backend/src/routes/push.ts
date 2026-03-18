@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { upsert, deleteByEndpoint, getByEndpoint } from '../db/subscriptions';
-import { getVapidPublicKey } from '../services/webpush';
+import { getVapidPublicKey, sendPush } from '../services/webpush';
 import { runDailyNotification, sendNotificationToSub } from '../jobs/scheduler';
 
 const router = Router();
@@ -63,15 +63,22 @@ router.post('/test', async (req: Request, res: Response) => {
   try {
     if (endpoint) {
       const sub = await getByEndpoint(endpoint);
-      if (!sub) return res.status(404).json({ error: 'Subscription not found.' });
-      await sendNotificationToSub(sub);
+      if (!sub) return res.status(404).json({ error: '구독 정보를 찾을 수 없습니다. 알림을 껐다가 다시 켜주세요.' });
+      // Send a direct ping (no meal dependency) so we can confirm delivery
+      await sendPush(sub, {
+        title: '석암초 안전급식 테스트',
+        body: '알림이 정상 작동합니다! 🎉',
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-72.png',
+        data: { url: '/' },
+      }, true /* throwOnError */);
     } else {
       await runDailyNotification();
     }
     return res.json({ success: true, message: 'Test notifications sent.' });
-  } catch (err) {
+  } catch (err: any) {
     console.error('[push] test notification failed:', err);
-    return res.status(500).json({ error: 'Failed to send test notification.' });
+    return res.status(500).json({ error: err.message || 'Failed to send test notification.' });
   }
 });
 
