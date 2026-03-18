@@ -126,7 +126,7 @@ export async function unsubscribe(): Promise<void> {
 }
 
 export async function forceResubscribe(): Promise<{ success: boolean; message: string }> {
-  // Unregister ALL service workers and clear all push subscriptions
+  // Clear all push subscriptions and unregister all service workers
   const registrations = await navigator.serviceWorker.getRegistrations();
   for (const reg of registrations) {
     const pushSub = await reg.pushManager.getSubscription().catch(() => null);
@@ -138,11 +138,14 @@ export async function forceResubscribe(): Promise<{ success: boolean; message: s
   }
   setPushSubscription(null);
 
-  // Re-register sw.js
-  const reg = await navigator.serviceWorker.register('/sw.js');
-  await navigator.serviceWorker.ready;
+  // Re-register sw.js and wait until it is fully active
+  await navigator.serviceWorker.register('/sw.js');
+  const activeReg = await waitForActiveSW();
+  if (!activeReg) {
+    return { success: false, message: '서비스 워커 활성화에 실패했습니다. 앱을 새로고침 후 다시 시도해주세요.' };
+  }
 
-  // Re-subscribe
+  // Get VAPID key
   let vapidKey: string;
   try {
     vapidKey = await getVapidPublicKey();
@@ -150,14 +153,15 @@ export async function forceResubscribe(): Promise<{ success: boolean; message: s
     return { success: false, message: 'VAPID 키를 가져오지 못했습니다.' };
   }
 
+  // Subscribe using the active registration
   let subscription: PushSubscription;
   try {
-    subscription = await reg.pushManager.subscribe({
+    subscription = await activeReg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
     });
-  } catch {
-    return { success: false, message: '푸시 구독 생성에 실패했습니다. 알림 권한을 확인해주세요.' };
+  } catch (err: any) {
+    return { success: false, message: `푸시 구독 실패: ${err?.message || '알림 권한을 확인해주세요.'}` };
   }
 
   try {
@@ -167,6 +171,30 @@ export async function forceResubscribe(): Promise<{ success: boolean; message: s
   }
 
   return { success: true, message: '알림 구독이 초기화되었습니다. 테스트 알림을 눌러 확인해보세요.' };
+}
+
+function waitForActiveSW(timeoutMs = 10000): Promise<ServiceWorkerRegistration | null> {
+  return new Promise(resolve => {
+    const timer = setTimeout(() => resolve(null), timeoutMs);
+
+    function check() {
+      navigator.serviceWorker.ready.then(reg => {
+        clearTimeout(timer);
+        resolve(reg);
+      });
+    }
+
+    // Poll until ready
+    const interval = setInterval(() => {
+      if (navigator.serviceWorker.controller) {
+        clearInterval(interval);
+        check();
+      }
+    }, 200);
+
+    // Also try immediately
+    check();
+  });
 }
 
 export async function isSubscribed(): Promise<boolean> {
