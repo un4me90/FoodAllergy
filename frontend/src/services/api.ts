@@ -1,5 +1,3 @@
-import { SchoolInfo } from './storage';
-
 export interface MealInfo {
   mealType: string;
   mealTypeCode: string;
@@ -17,10 +15,6 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     throw e;
   }
   return res.json() as Promise<T>;
-}
-
-export async function searchSchools(query: string): Promise<SchoolInfo[]> {
-  return request<SchoolInfo[]>(`/api/schools?q=${encodeURIComponent(query)}`);
 }
 
 export function getTodayDateString(): string {

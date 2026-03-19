@@ -1,23 +1,28 @@
 import webpush from 'web-push';
-import { NotificationPayload, PushSubscriptionRecord } from '../types';
 import { deleteByEndpoint } from '../db/subscriptions';
+import { NotificationPayload, PushSubscriptionRecord } from '../types';
 
 let initialized = false;
 
-function initVapid(): void {
-  if (initialized) return;
-  const publicKey = process.env.VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
-  // Apple APNS requires a valid internet domain in the VAPID subject.
-  // .local domains cause BadJwtToken. Use the app's HTTPS URL unconditionally.
-  const email = 'https://food-allergy-app.onrender.com';
+export interface SendPushResult {
+  status: 'sent' | 'expired' | 'skipped';
+}
 
-  if (!publicKey || !privateKey) {
-    console.warn('[webpush] VAPID 키가 설정되지 않았습니다. .env 파일을 확인하세요.');
+function initVapid(): void {
+  if (initialized) {
     return;
   }
 
-  webpush.setVapidDetails(email, publicKey, privateKey);
+  const publicKey = process.env.VAPID_PUBLIC_KEY;
+  const privateKey = process.env.VAPID_PRIVATE_KEY;
+  const subject = 'https://food-allergy-app.onrender.com';
+
+  if (!publicKey || !privateKey) {
+    console.warn('[webpush] VAPID keys are not configured.');
+    return;
+  }
+
+  webpush.setVapidDetails(subject, publicKey, privateKey);
   initialized = true;
 }
 
@@ -25,11 +30,12 @@ export async function sendPush(
   record: PushSubscriptionRecord,
   payload: NotificationPayload,
   throwOnError = false
-): Promise<void> {
+): Promise<SendPushResult> {
   initVapid();
+
   if (!initialized) {
-    console.warn('[webpush] VAPID 미설정으로 푸시 발송 건너뜀');
-    return;
+    console.warn('[webpush] push send skipped because VAPID is not initialized.');
+    return { status: 'skipped' };
   }
 
   const subscription: webpush.PushSubscription = {
@@ -42,15 +48,21 @@ export async function sendPush(
 
   try {
     await webpush.sendNotification(subscription, JSON.stringify(payload));
-    console.log(`[webpush] 발송 성공: ${record.endpoint.slice(0, 50)}...`);
+    console.log(`[webpush] delivered: ${record.endpoint.slice(0, 50)}...`);
+    return { status: 'sent' };
   } catch (err: any) {
-    if (err.statusCode === 410 || err.statusCode === 404) {
-      console.log(`[webpush] 만료된 구독 삭제: ${record.endpoint.slice(0, 50)}...`);
+    if (err.statusCode === 404 || err.statusCode === 410) {
+      console.log(`[webpush] expired subscription removed: ${record.endpoint.slice(0, 50)}...`);
       await deleteByEndpoint(record.endpoint);
-    } else {
-      console.error(`[webpush] 발송 실패 (${err.statusCode}):`, err.message);
+      return { status: 'expired' };
     }
-    if (throwOnError) throw new Error(`Push 발송 실패 (HTTP ${err.statusCode}): ${err.body || err.message}`);
+
+    console.error(`[webpush] delivery failed (${err.statusCode}):`, err.message);
+    if (throwOnError) {
+      throw new Error(`Push delivery failed (HTTP ${err.statusCode}): ${err.body || err.message}`);
+    }
+
+    return { status: 'skipped' };
   }
 }
 

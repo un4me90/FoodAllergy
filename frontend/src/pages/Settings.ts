@@ -1,6 +1,8 @@
 import { createAllergenCheckboxes } from '../components/AllergenCheckboxes';
+import { FIXED_SCHOOL } from '../config/school';
 import { testPush } from '../services/api';
 import {
+  forceResubscribe,
   getNotificationPermission,
   hasStoredSubscription,
   isNotificationSupported,
@@ -9,11 +11,8 @@ import {
   requestAndSubscribe,
   syncSubscriptionPreferences,
   unsubscribe,
-  forceResubscribe,
 } from '../services/push';
-import { clearSetup, getAllergens, setAllergens, getPushSubscription } from '../services/storage';
-
-const FIXED_SCHOOL_NAME = '인천석암초등학교';
+import { clearSetup, getAllergens, getPushSubscription, setAllergens } from '../services/storage';
 
 export function renderSettings(container: HTMLElement, onBack: () => void): void {
   let selectedAllergens: number[] = getAllergens();
@@ -30,7 +29,7 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
           <div class="settings-section-title">학교</div>
           <div class="card" style="padding:0.875rem 1rem;display:flex;align-items:center;gap:0.5rem">
             <span style="font-size:1.25rem">🏫</span>
-            <span style="font-weight:600;color:#1d4ed8">${FIXED_SCHOOL_NAME}</span>
+            <span style="font-weight:600;color:#1d4ed8">${FIXED_SCHOOL.name}</span>
           </div>
         </div>
 
@@ -94,16 +93,16 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
 
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-      (navigator as any).standalone === true;
+      (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
     if (isIOS && !isStandalone) {
       notifCard.innerHTML = `
         <div style="font-size:0.9375rem;color:#64748b;line-height:1.6">
           iPhone에서는 Safari에서 홈 화면에 추가한 뒤 알림을 켤 수 있습니다.<br>
-          1. Safari 공유 버튼 탭<br>
+          1. Safari 공유 버튼 선택<br>
           2. 홈 화면에 추가 선택<br>
           3. 홈 화면 아이콘으로 앱 실행<br>
-          4. 설정에서 알림 허용
+          4. 다시 설정 화면에서 알림 허용
         </div>
       `;
       return;
@@ -112,7 +111,7 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
     if (!isNotificationSupported()) {
       notifCard.innerHTML = `
         <div style="color:#64748b;font-size:0.9375rem">
-          이 브라우저는 알림 기능을 지원하지 않습니다.
+          현재 브라우저는 알림 기능을 지원하지 않습니다.
         </div>
       `;
       return;
@@ -121,8 +120,8 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
     if (!isPushSubscriptionSupported()) {
       notifCard.innerHTML = `
         <div style="color:#64748b;font-size:0.9375rem;line-height:1.6">
-          이 브라우저 환경에서는 푸시 알림을 사용할 수 없습니다.<br>
-          Android는 Chrome, iPhone은 Safari 홈 화면 앱에서 다시 시도해 주세요.
+          현재 브라우저 환경에서는 푸시 알림을 사용할 수 없습니다.<br>
+          Android Chrome 또는 iPhone Safari 홈 화면 앱에서 다시 시도해 주세요.
         </div>
       `;
       return;
@@ -140,11 +139,11 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
 
     const label = document.createElement('div');
     label.innerHTML = `
-      <div style="font-weight:600">매일 아침 급식 알림</div>
+      <div style="font-weight:600">매일 급식 알림</div>
       <div style="font-size:0.875rem;color:#64748b;margin-top:0.125rem">
         ${permission === 'denied'
-          ? '브라우저 알림 권한이 차단되었습니다. 브라우저 설정에서 허용해주세요.'
-          : '당일 급식 메뉴와 내 알레르기 주의 정보를 함께 보내드립니다.'}
+          ? '브라우저 알림 권한이 차단되어 있습니다. 브라우저 설정에서 허용해 주세요.'
+          : '매일 급식 메뉴와 알레르기 주의 정보를 푸시로 보내드립니다.'}
       </div>
       ${locallyStored ? '<div style="font-size:0.8rem;color:#16a34a;margin-top:0.35rem">이 기기에는 알림 설정 정보가 저장되어 있습니다.</div>' : ''}
     `;
@@ -176,21 +175,31 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
         testBtn.disabled = true;
         testBtn.textContent = '전송 중...';
         try {
-          // Try to sync subscription to DB (may fail if SW not yet controlling page)
-          try { await syncSubscriptionPreferences(); } catch { /* ignore */ }
-          // Get endpoint: prefer live pushManager, fall back to localStorage
+          try {
+            await syncSubscriptionPreferences();
+          } catch {
+            // Ignore sync errors before the direct test call.
+          }
+
           let endpoint: string | undefined;
           try {
             const reg = await navigator.serviceWorker.ready;
             const sub = await reg.pushManager.getSubscription();
             endpoint = sub?.endpoint;
-          } catch { /* ignore */ }
-          if (!endpoint) endpoint = getPushSubscription()?.endpoint ?? undefined;
+          } catch {
+            // Ignore and fall back to local storage below.
+          }
+
+          if (!endpoint) {
+            endpoint = getPushSubscription()?.endpoint ?? undefined;
+          }
+
           await testPush(endpoint);
-          testBtn.textContent = '전송 완료 ✓';
+          testBtn.textContent = '전송 완료';
         } catch (err: any) {
           testBtn.textContent = `전송 실패: ${err?.message || '알 수 없는 오류'}`;
         }
+
         setTimeout(() => {
           testBtn.textContent = '테스트 알림 보내기';
           testBtn.disabled = false;
@@ -201,10 +210,11 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
       const resetBtn = document.createElement('button');
       resetBtn.className = 'btn btn-ghost';
       resetBtn.style.cssText = 'margin-top:0.5rem;font-size:0.875rem;color:#f59e0b';
-      resetBtn.textContent = '알림 구독 초기화 (문제 해결용)';
+      resetBtn.textContent = '알림 구독 초기화';
       resetBtn.addEventListener('click', async () => {
         resetBtn.disabled = true;
         resetBtn.textContent = '초기화 중...';
+
         try {
           const result = await forceResubscribe();
           alert(result.message);
@@ -212,7 +222,7 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
         } catch (err: any) {
           alert(`초기화 실패: ${err?.message || '알 수 없는 오류'}`);
           resetBtn.disabled = false;
-          resetBtn.textContent = '알림 구독 초기화 (문제 해결용)';
+          resetBtn.textContent = '알림 구독 초기화';
         }
       });
       notifCard.appendChild(resetBtn);
@@ -220,6 +230,7 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
 
     toggleInput.addEventListener('change', async () => {
       toggleInput.disabled = true;
+
       if (toggleInput.checked) {
         try {
           const result = await requestAndSubscribe();
@@ -243,6 +254,7 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
         }
         void renderNotificationUI();
       }
+
       toggleInput.disabled = false;
     });
   }

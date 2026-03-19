@@ -1,13 +1,6 @@
 import { createAllergenCheckboxes } from '../components/AllergenCheckboxes';
-import { setSchool, getAllergens, setAllergens } from '../services/storage';
-
-const FIXED_SCHOOL = {
-  name: '인천석암초등학교',
-  type: '초등학교',
-  district: '인천광역시',
-  regionCode: 'E10',
-  schoolCode: '7321031',
-};
+import { FIXED_SCHOOL } from '../config/school';
+import { getAllergens, setAllergens, setSchool } from '../services/storage';
 
 export function renderSetup(container: HTMLElement, onComplete: () => void): void {
   let selectedAllergens: number[] = getAllergens();
@@ -19,7 +12,7 @@ export function renderSetup(container: HTMLElement, onComplete: () => void): voi
       <div class="setup-header">
         <div class="logo">🍱</div>
         <h1>급식 알레르기 알림</h1>
-        <p>알레르기 정보를 설정하면<br>매일 아침 급식 알림을 받을 수 있어요</p>
+        <p>알레르기 정보를 설정하면<br>매일 급식 알림을 받을 수 있어요.</p>
       </div>
       <div class="setup-steps">
         <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:0.75rem;padding:0.875rem 1rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:0.5rem">
@@ -31,8 +24,8 @@ export function renderSetup(container: HTMLElement, onComplete: () => void): voi
         </div>
         <div class="step">
           <div class="step-num">1</div>
-          <div class="step-title">해당하는 알레르기를 모두 선택하세요</div>
-          <p style="font-size:0.875rem;color:#64748b;margin-bottom:0.75rem">없으면 선택하지 않고 완료를 눌러주세요</p>
+          <div class="step-title">해당하는 알레르기를 모두 선택해 주세요.</div>
+          <p style="font-size:0.875rem;color:#64748b;margin-bottom:0.75rem">없으면 선택하지 않고 완료를 눌러도 됩니다.</p>
           <div id="allergen-mount"></div>
         </div>
         <button class="btn btn-primary" id="setup-complete" style="margin-top:1rem">
@@ -46,7 +39,7 @@ export function renderSetup(container: HTMLElement, onComplete: () => void): voi
   const completeBtn = container.querySelector('#setup-complete') as HTMLButtonElement;
 
   allergenMount.appendChild(
-    createAllergenCheckboxes(selectedAllergens, (allergens) => {
+    createAllergenCheckboxes(selectedAllergens, allergens => {
       selectedAllergens = allergens;
     })
   );

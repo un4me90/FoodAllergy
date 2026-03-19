@@ -1,5 +1,5 @@
 import fetch from 'node-fetch';
-import { MealInfo, NeisSchoolRow, NeisMealRow, ParsedDish, SchoolInfo } from '../types';
+import { MealInfo, NeisMealRow, ParsedDish } from '../types';
 
 const API_KEY = process.env.NEIS_API_KEY!;
 const BASE_URL = 'https://open.neis.go.kr/hub';
@@ -33,31 +33,6 @@ export function parseDishName(ddishNm: string): ParsedDish[] {
   }
 
   return dishes;
-}
-
-export async function searchSchools(query: string): Promise<SchoolInfo[]> {
-  const params = new URLSearchParams({
-    KEY: API_KEY,
-    Type: 'json',
-    pIndex: '1',
-    pSize: '10',
-    SCHUL_NM: query,
-  });
-
-  const url = `${BASE_URL}/schoolInfo?${params}`;
-  const res = await fetch(url);
-  const data = await res.json() as any;
-
-  if (!data.schoolInfo) return [];
-
-  const rows: NeisSchoolRow[] = data.schoolInfo[1]?.row ?? [];
-  return rows.map(row => ({
-    name: row.SCHUL_NM,
-    type: row.SCHUL_KND_SC_NM,
-    district: row.LCTN_SC_NM,
-    regionCode: row.ATPT_OFCDC_SC_CODE,
-    schoolCode: row.SD_SCHUL_CODE,
-  }));
 }
 
 export async function fetchMeal(

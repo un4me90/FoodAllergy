@@ -2,7 +2,6 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
-import schoolRouter from './routes/school';
 import mealRouter from './routes/meal';
 import pushRouter from './routes/push';
 import { startScheduler } from './jobs/scheduler';
@@ -18,7 +17,6 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
 });
 
-app.use('/api/schools', schoolRouter);
 app.use('/api/meal', mealRouter);
 app.use('/api/push', pushRouter);
 

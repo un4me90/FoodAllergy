@@ -43,6 +43,16 @@ export async function initializeDatabase(): Promise<void> {
   `);
 
   await query(`
+    CREATE INDEX IF NOT EXISTS push_subscriptions_school_idx
+    ON push_subscriptions (region_code, school_code)
+  `);
+
+  await query(`
+    CREATE INDEX IF NOT EXISTS push_subscriptions_updated_at_idx
+    ON push_subscriptions (updated_at DESC)
+  `);
+
+  await query(`
     CREATE TABLE IF NOT EXISTS meal_cache (
       region_code TEXT NOT NULL,
       school_code TEXT NOT NULL,
@@ -56,5 +66,24 @@ export async function initializeDatabase(): Promise<void> {
   await query(`
     CREATE INDEX IF NOT EXISTS meal_cache_fetched_at_idx
     ON meal_cache (fetched_at DESC)
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS notification_runs (
+      job_type TEXT NOT NULL,
+      run_date TEXT NOT NULL,
+      status TEXT NOT NULL,
+      started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      finished_at TIMESTAMPTZ NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      details JSONB NOT NULL DEFAULT '{}'::jsonb,
+      error_message TEXT NULL,
+      PRIMARY KEY (job_type, run_date)
+    )
+  `);
+
+  await query(`
+    CREATE INDEX IF NOT EXISTS notification_runs_status_idx
+    ON notification_runs (status, updated_at DESC)
   `);
 }
