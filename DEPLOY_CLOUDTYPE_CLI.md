@@ -20,13 +20,13 @@ npm i -g @cloudtype/cli
 3. Cloudtype 로그인
 
 ```bash
-ctype login
+cmd /c "set USERPROFILE=%CD%\\.cloudtype-home && set HOME=%CD%\\.cloudtype-home && ctype login"
 ```
 
 또는 토큰 방식:
 
 ```bash
-ctype login -t YOUR_TOKEN
+cmd /c "set USERPROFILE=%CD%\\.cloudtype-home && set HOME=%CD%\\.cloudtype-home && ctype login -t YOUR_TOKEN"
 ```
 
 ## 최초 1회
@@ -36,7 +36,7 @@ ctype login -t YOUR_TOKEN
 3. 저장소 루트에서 아래 명령을 실행합니다.
 
 ```bash
-ctype apply
+cmd /c "set USERPROFILE=%CD%\\.cloudtype-home && set HOME=%CD%\\.cloudtype-home && ctype apply"
 ```
 
 또는 VS Code 터미널에서:

@@ -7,5 +7,12 @@ if (-not (Get-Command ctype -ErrorAction SilentlyContinue)) {
   exit 1
 }
 
+if (-not (Test-Path ".cloudtype-home")) {
+  New-Item -ItemType Directory -Path ".cloudtype-home" | Out-Null
+}
+
+$env:USERPROFILE = (Resolve-Path ".cloudtype-home").Path
+$env:HOME = $env:USERPROFILE
+
 Write-Host "Applying Cloudtype deployment from .cloudtype/app.yaml..." -ForegroundColor Cyan
-ctype apply
+cmd /c ctype apply

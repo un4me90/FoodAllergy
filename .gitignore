@@ -4,6 +4,7 @@ backend/dist/
 frontend/dist/
 backend/.env
 .env
+.cloudtype-home/
 backend/subscriptions.json
 backend/meal-cache.json
 *.log
