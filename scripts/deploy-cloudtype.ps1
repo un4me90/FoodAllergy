@@ -33,7 +33,11 @@ $requiredVars = @(
   "VAPID_PRIVATE_KEY"
 )
 
-$missingVars = @($requiredVars | Where-Object { -not $env:$_ })
+$missingVars = @(
+  $requiredVars | Where-Object {
+    -not [Environment]::GetEnvironmentVariable($_)
+  }
+)
 if ($missingVars.Count -gt 0) {
   Write-Host ("Missing required environment variables: " + ($missingVars -join ", ")) -ForegroundColor Yellow
   exit 1
