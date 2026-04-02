@@ -6,6 +6,7 @@ frontend/dist/
 backend/.env
 .env
 .cloudtype-home/
+.cloudtype/app.generated.yaml
 .supabase-home/
 supabase/.temp/
 supabase/migrations/*_remote_schema.sql
