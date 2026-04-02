@@ -10,11 +10,26 @@ function getDatabaseUrl(): string {
   return databaseUrl;
 }
 
+function normalizeDatabaseUrl(connectionString: string): string {
+  try {
+    const url = new URL(connectionString);
+    // Let the app control TLS behavior through DATABASE_SSL instead of
+    // inheriting provider-specific sslmode flags from the URL.
+    url.searchParams.delete('sslmode');
+    url.searchParams.delete('sslcert');
+    url.searchParams.delete('sslkey');
+    url.searchParams.delete('sslrootcert');
+    return url.toString();
+  } catch {
+    return connectionString;
+  }
+}
+
 function getPool(): Pool {
   if (!pool) {
     const useSsl = process.env.DATABASE_SSL !== 'false';
     pool = new Pool({
-      connectionString: getDatabaseUrl(),
+      connectionString: normalizeDatabaseUrl(getDatabaseUrl()),
       ssl: useSsl ? { rejectUnauthorized: false } : false,
     });
   }
