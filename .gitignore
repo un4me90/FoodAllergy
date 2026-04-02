@@ -8,6 +8,7 @@ backend/.env
 .cloudtype-home/
 .supabase-home/
 supabase/.temp/
+supabase/migrations/*_remote_schema.sql
 backend/subscriptions.json
 backend/meal-cache.json
 *.log
