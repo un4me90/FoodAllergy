@@ -1,3 +1,4 @@
+node_modules/
 backend/node_modules/
 frontend/node_modules/
 backend/dist/
@@ -5,6 +6,8 @@ frontend/dist/
 backend/.env
 .env
 .cloudtype-home/
+.supabase-home/
+supabase/.temp/
 backend/subscriptions.json
 backend/meal-cache.json
 *.log

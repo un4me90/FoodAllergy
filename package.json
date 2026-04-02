@@ -4,7 +4,15 @@
   "scripts": {
     "build": "npm --prefix frontend ci --include=dev && npm --prefix frontend run build && npm --prefix backend ci --include=dev && npm --prefix backend run build",
     "start": "node backend/dist/index.js",
-    "deploy:cloudtype": "powershell -ExecutionPolicy Bypass -File scripts/deploy-cloudtype.ps1"
+    "deploy:cloudtype": "powershell -ExecutionPolicy Bypass -File scripts/deploy-cloudtype.ps1",
+    "supabase:login": "powershell -ExecutionPolicy Bypass -File scripts/supabase-cli.ps1 login",
+    "supabase:link": "powershell -ExecutionPolicy Bypass -File scripts/supabase-cli.ps1 link --project-ref wjjcodoathuqbpebqbhu",
+    "supabase:db:pull": "powershell -ExecutionPolicy Bypass -File scripts/supabase-cli.ps1 db pull",
+    "supabase:db:push": "powershell -ExecutionPolicy Bypass -File scripts/supabase-cli.ps1 db push",
+    "supabase:gen:types": "powershell -ExecutionPolicy Bypass -File scripts/supabase-cli.ps1 gen types typescript --linked --schema public"
+  },
+  "devDependencies": {
+    "supabase": "^1.226.4"
   },
   "engines": {
     "node": ">=20"
