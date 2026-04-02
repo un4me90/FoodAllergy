@@ -1,5 +1,9 @@
 # Cloudtype + Supabase 배포 가이드
 
+운영 표준 문서:
+
+- 실제 배포/장애 대응/팀 공통 규칙은 [`DEPLOY_RUNBOOK_CLOUDTYPE_SUPABASE.md`](/d:/SharedWork/00_VibeCoding/07_FoodAllergy/DEPLOY_RUNBOOK_CLOUDTYPE_SUPABASE.md)를 우선 참고합니다.
+
 이 폴더는 Cloudtype 애플리케이션 서버와 Supabase Postgres 조합으로 배포하는 기준으로 정리되어 있습니다.
 
 ## 구성

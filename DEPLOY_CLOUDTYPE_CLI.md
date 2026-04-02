@@ -1,5 +1,9 @@
 # Cloudtype CLI 배포
 
+운영 표준 문서:
+
+- 자세한 실제 운영 절차와 장애 대응은 [`DEPLOY_RUNBOOK_CLOUDTYPE_SUPABASE.md`](/d:/SharedWork/00_VibeCoding/07_FoodAllergy/DEPLOY_RUNBOOK_CLOUDTYPE_SUPABASE.md)를 우선 참고합니다.
+
 이 저장소는 Cloudtype의 Node 템플릿 대신 Dockerfile 기반으로 배포하도록 정리되어 있습니다. 이 방식이 현재 프로젝트 구조와 가장 잘 맞고, VS Code 터미널에서 반복 배포하기도 편합니다.
 
 ## 왜 Dockerfile 기반으로 바꿨나
