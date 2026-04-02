@@ -3,6 +3,7 @@ frontend/node_modules/
 backend/dist/
 frontend/dist/
 backend/.env
+.env
 backend/subscriptions.json
 backend/meal-cache.json
 *.log

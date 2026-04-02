@@ -6,7 +6,7 @@ COPY frontend/package*.json ./frontend/
 RUN npm --prefix frontend ci --include=dev
 
 COPY backend/package*.json ./backend/
-RUN npm --prefix backend ci
+RUN npm --prefix backend ci --include=dev
 
 COPY frontend/ ./frontend/
 RUN npm --prefix frontend run build

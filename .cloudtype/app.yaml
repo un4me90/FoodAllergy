@@ -1,5 +1,5 @@
 name: food-allergy-app
-app: node@20
+app: dockerfile
 
 options:
   env:
@@ -8,11 +8,7 @@ options:
     - name: TZ
       value: Asia/Seoul
   ports: 3001
-  install:
-    - npm --prefix frontend ci --include=dev
-    - npm --prefix backend ci
-  build: npm --prefix frontend run build && npm --prefix backend run build
-  start: node backend/dist/index.js
+  dockerfile: Dockerfile
 
 context:
   preset: node.js
