@@ -56,6 +56,9 @@ $envMap = [ordered]@{
   VAPID_EMAIL = if ($env:VAPID_EMAIL) { $env:VAPID_EMAIL } else { "mailto:admin@foodallergy.local" }
 }
 
+$gitUrl = "https://github.com/un4me90/FoodAllergy.git"
+$gitBranch = "main"
+
 $yamlLines = @(
   "name: food-allergy-app",
   "app: dockerfile",
@@ -75,7 +78,10 @@ $yamlLines += @(
   "  dockerfile: Dockerfile",
   "",
   "context:",
-  "  preset: node.js"
+  "  git:",
+  "    url: $gitUrl",
+  "    branch: $gitBranch",
+  "  preset: dockerfile"
 )
 
 $generatedYamlPath = Join-Path ".cloudtype" "app.generated.yaml"

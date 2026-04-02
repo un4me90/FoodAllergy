@@ -11,4 +11,7 @@ options:
   dockerfile: Dockerfile
 
 context:
-  preset: node.js
+  git:
+    url: https://github.com/un4me90/FoodAllergy.git
+    branch: main
+  preset: dockerfile
