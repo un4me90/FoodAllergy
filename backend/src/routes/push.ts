@@ -4,6 +4,7 @@ import { getVapidPublicKey, sendPush } from '../services/webpush';
 import { runDailyNotification, sendNotificationToSub } from '../jobs/scheduler';
 
 const router = Router();
+const notificationIcon = '/seokam_logo_transparent_small.png';
 
 router.get('/vapid-public-key', (_req: Request, res: Response) => {
   const key = getVapidPublicKey();
@@ -68,8 +69,8 @@ router.post('/test', async (req: Request, res: Response) => {
       await sendPush(sub, {
         title: '석암초 안전급식 테스트',
         body: '알림이 정상 작동합니다! 🎉',
-        icon: '/icons/icon-192.png',
-        badge: '/icons/icon-72.png',
+        icon: notificationIcon,
+        badge: notificationIcon,
         data: { url: '/' },
       }, true /* throwOnError */);
     } else {

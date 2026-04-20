@@ -15,17 +15,24 @@ function navigate(path: string): void {
 
 function renderRoute(): void {
   const route = getRoute();
+  const setupCompleted = hasCompletedSetup();
 
-  // 설정 미완료 시 강제로 설정 페이지로
-  if (!hasCompletedSetup() && route !== '/setup') {
+  if (!setupCompleted && route !== '/setup') {
     navigate('/setup');
+    return;
+  }
+
+  if (setupCompleted && route === '/setup') {
+    navigate('/');
     return;
   }
 
   app.innerHTML = '';
 
   if (route === '/setup') {
-    renderSetup(app, () => navigate('/'));
+    renderSetup(app, () => {
+      navigate('/');
+    });
   } else if (route === '/settings') {
     renderSettings(app, () => navigate('/'));
   } else {

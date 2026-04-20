@@ -1,12 +1,15 @@
 import fetch from 'node-fetch';
 import { MealInfo, NeisMealRow, ParsedDish } from '../types';
 
-const API_KEY = process.env.NEIS_API_KEY!;
 const BASE_URL = 'https://open.neis.go.kr/hub';
 
+interface NeisError extends Error {
+  code?: string;
+}
+
 /**
- * DDISH_NM 예시:
- * "쇠고기배춧국(N) (9.16)<br/>깍두기(N) (9)<br/>절편(N)"
+ * Example DDISH_NM:
+ * "Rice<br/>Soup (1.5.6)<br/>Kimchi (9)"
  */
 export function parseDishName(ddishNm: string): ParsedDish[] {
   const dishes: ParsedDish[] = [];
@@ -35,13 +38,33 @@ export function parseDishName(ddishNm: string): ParsedDish[] {
   return dishes;
 }
 
-export async function fetchMeal(
+function createNeisError(code: string, message: string): NeisError {
+  const error = new Error(message) as NeisError;
+  error.code = code;
+  return error;
+}
+
+function getApiKey(): string | null {
+  const value = process.env.NEIS_API_KEY?.trim();
+  if (!value || value === 'undefined' || value === 'null') {
+    return null;
+  }
+
+  return value;
+}
+
+function isRetryableAuthError(error: unknown): error is NeisError {
+  const code = (error as NeisError | undefined)?.code;
+  return code === 'ERROR-290' || code === 'ERROR-300';
+}
+
+async function requestMeals(
   regionCode: string,
   schoolCode: string,
-  date: string
+  date: string,
+  apiKey: string | null
 ): Promise<MealInfo[]> {
   const params = new URLSearchParams({
-    KEY: API_KEY,
     Type: 'json',
     pIndex: '1',
     pSize: '10',
@@ -50,24 +73,27 @@ export async function fetchMeal(
     MLSV_YMD: date,
   });
 
+  if (apiKey) {
+    params.set('KEY', apiKey);
+  }
+
   const url = `${BASE_URL}/mealServiceDietInfo?${params}`;
   const res = await fetch(url);
   const data = await res.json() as any;
 
   if (data.RESULT) {
-    const code = data.RESULT.CODE;
-    if (code === 'ERROR-300') {
-      throw new Error(
-        'API_KEY_PERMISSION: NEIS API에 급식식단정보 서비스 권한이 없습니다. open.neis.go.kr에서 급식식단정보 서비스를 활성화해 주세요.'
-      );
-    }
-    throw new Error(`NEIS_ERROR: ${data.RESULT.MESSAGE}`);
+    throw createNeisError(data.RESULT.CODE, data.RESULT.MESSAGE || 'NEIS request failed.');
   }
 
-  if (!data.mealServiceDietInfo) return [];
+  if (!data.mealServiceDietInfo) {
+    return [];
+  }
 
-  const resultCode = data.mealServiceDietInfo[0]?.head?.[1]?.RESULT?.CODE;
-  if (resultCode !== 'INFO-000') return [];
+  const headResult = data.mealServiceDietInfo[0]?.head?.[1]?.RESULT;
+  const resultCode = headResult?.CODE;
+  if (resultCode !== 'INFO-000') {
+    throw createNeisError(resultCode || 'NEIS_UNKNOWN', headResult?.MESSAGE || 'NEIS request failed.');
+  }
 
   const rows: NeisMealRow[] = data.mealServiceDietInfo[1]?.row ?? [];
 
@@ -78,4 +104,23 @@ export async function fetchMeal(
     dishes: parseDishName(row.DDISH_NM),
     calInfo: row.CAL_INFO,
   }));
+}
+
+export async function fetchMeal(
+  regionCode: string,
+  schoolCode: string,
+  date: string
+): Promise<MealInfo[]> {
+  const apiKey = getApiKey();
+
+  try {
+    return await requestMeals(regionCode, schoolCode, date, apiKey);
+  } catch (error) {
+    if (apiKey && isRetryableAuthError(error)) {
+      console.warn(`[neis] request with API key failed (${error.code}); retrying without key.`);
+      return requestMeals(regionCode, schoolCode, date, null);
+    }
+
+    throw error;
+  }
 }

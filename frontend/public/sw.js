@@ -2,8 +2,16 @@
 // eslint-disable-next-line no-undef
 const WB_MANIFEST = self.__WB_MANIFEST;
 
-const CACHE_NAME = 'food-allergy-v1';
-const APP_SHELL = ['/', '/index.html', '/offline.html'];
+const CACHE_NAME = 'food-allergy-v3';
+const scopeUrl = new URL(self.registration.scope);
+const scopePath = scopeUrl.pathname.endsWith('/')
+  ? scopeUrl.pathname.slice(0, -1)
+  : scopeUrl.pathname;
+const baseUrl = scopePath ? `${scopePath}/` : '/';
+const apiPrefix = scopePath ? `${scopePath}/api/` : '/api/';
+const APP_SHELL = [baseUrl, `${baseUrl}index.html`, `${baseUrl}offline.html`];
+const defaultIcon = `${baseUrl}seokam_logo_transparent_small.png`;
+const defaultBadge = defaultIcon;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -23,14 +31,37 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
+  const isAppShellRequest =
+    event.request.mode === 'navigate' ||
+    url.pathname === scopeUrl.pathname ||
+    url.pathname === `${scopePath}/index.html`;
 
-  if (url.pathname.startsWith('/api/')) {
+  if (url.pathname.startsWith(apiPrefix)) {
     event.respondWith(
       fetch(event.request).catch(() =>
         new Response(JSON.stringify({ error: '오프라인 상태입니다.' }), {
           headers: { 'Content-Type': 'application/json' },
         })
       )
+    );
+    return;
+  }
+
+  if (isAppShellRequest) {
+    event.respondWith(
+      fetch(event.request)
+        .then((res) => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return res;
+        })
+        .catch(() =>
+          caches.match(event.request).then(
+            (cached) => cached || caches.match(`${baseUrl}offline.html`)
+          )
+        )
     );
     return;
   }
@@ -43,11 +74,11 @@ self.addEventListener('fetch', (event) => {
           .then((res) => {
             if (res.ok) {
               const clone = res.clone();
-              caches.open(CACHE_NAME).then((c) => c.put(event.request, clone));
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
             }
             return res;
           })
-          .catch(() => caches.match('/offline.html'))
+          .catch(() => caches.match(`${baseUrl}offline.html`))
     )
   );
 });
@@ -55,16 +86,16 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('push', (event) => {
   let data = {
     title: '석암초 안전급식',
-    body: '오늘 급식을 확인하세요.',
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-72.png',
-    data: { url: '/' },
+    body: '오늘 급식을 확인해 보세요.',
+    icon: defaultIcon,
+    badge: defaultBadge,
+    data: { url: baseUrl },
   };
 
   if (event.data) {
     try {
       data = JSON.parse(event.data.text());
-    } catch (e) {
+    } catch (error) {
       data.body = event.data.text();
     }
   }
@@ -72,19 +103,19 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: data.icon || '/icons/icon-192.png',
-      badge: data.badge || '/icons/icon-72.png',
+      icon: data.icon || defaultIcon,
+      badge: data.badge || defaultBadge,
       vibrate: [200, 100, 200],
       tag: 'food-allergy-alert',
       renotify: true,
-      data: data.data || { url: '/' },
+      data: data.data || { url: baseUrl },
     })
   );
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = event.notification.data?.url || '/';
+  const targetUrl = event.notification.data?.url || baseUrl;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
@@ -97,6 +128,7 @@ self.addEventListener('notificationclick', (event) => {
       if (clients.openWindow) {
         return clients.openWindow(targetUrl);
       }
+      return undefined;
     })
   );
 });

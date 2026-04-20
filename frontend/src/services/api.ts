@@ -1,3 +1,5 @@
+import { apiBaseUrl } from '../config/base';
+
 export interface MealInfo {
   mealType: string;
   mealTypeCode: string;
@@ -32,12 +34,12 @@ export async function getMeal(
 ): Promise<MealInfo[]> {
   const d = date || getTodayDateString();
   return request<MealInfo[]>(
-    `/api/meal?regionCode=${regionCode}&schoolCode=${schoolCode}&date=${d}`
+    `${apiBaseUrl}/meal?regionCode=${regionCode}&schoolCode=${schoolCode}&date=${d}`
   );
 }
 
 export async function getVapidPublicKey(): Promise<string> {
-  const data = await request<{ publicKey: string }>('/api/push/vapid-public-key');
+  const data = await request<{ publicKey: string }>(`${apiBaseUrl}/push/vapid-public-key`);
   return data.publicKey;
 }
 
@@ -47,7 +49,7 @@ export async function subscribePush(payload: {
   regionCode: string;
   allergens: number[];
 }): Promise<void> {
-  await request('/api/push/subscribe', {
+  await request(`${apiBaseUrl}/push/subscribe`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -55,7 +57,7 @@ export async function subscribePush(payload: {
 }
 
 export async function unsubscribePush(endpoint: string): Promise<void> {
-  await request('/api/push/subscribe', {
+  await request(`${apiBaseUrl}/push/subscribe`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ endpoint }),
@@ -63,7 +65,7 @@ export async function unsubscribePush(endpoint: string): Promise<void> {
 }
 
 export async function testPush(endpoint?: string): Promise<void> {
-  await request('/api/push/test', {
+  await request(`${apiBaseUrl}/push/test`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(endpoint ? { endpoint } : {}),

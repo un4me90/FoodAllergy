@@ -7,6 +7,8 @@ import { fetchMeal } from '../services/neis';
 import { sendPush } from '../services/webpush';
 import { MealInfo, NotificationJobType, NotificationRunStats, PushSubscriptionRecord } from '../types';
 
+const notificationIcon = '/seokam_logo_transparent_small.png';
+
 const ALLERGEN_NAMES: Record<number, string> = {
   1: '난류',
   2: '우유',
@@ -285,8 +287,8 @@ export async function sendNotificationToSub(
   await sendPush(sub, {
     title,
     body: `메뉴: ${mealSummary} | 알레르기 주의: ${warningSummary}`,
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-72.png',
+    icon: notificationIcon,
+    badge: notificationIcon,
     data: { url: '/' },
   });
 }
@@ -328,8 +330,8 @@ export async function runDailyNotification(date = getTodayDate()): Promise<Notif
       return {
         title: `오늘 ${meal.mealType} 급식 안내`,
         body: `메뉴: ${mealSummary} | 알레르기 주의: ${warningSummary}`,
-        icon: '/icons/icon-192.png',
-        badge: '/icons/icon-72.png',
+        icon: notificationIcon,
+        badge: notificationIcon,
         data: { url: '/' },
       };
     });
@@ -376,8 +378,8 @@ export async function runLunchReminder(date = getTodayDate()): Promise<Notificat
     return {
       title: `점심 전 ${meal.mealType} 급식 안내`,
       body: `메뉴: ${mealSummary} | 알레르기 주의: ${warningSummary}`,
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-72.png',
+      icon: notificationIcon,
+      badge: notificationIcon,
       data: { url: '/' },
     };
   });

@@ -1,11 +1,12 @@
 import { Pool, QueryResult, QueryResultRow } from 'pg';
 
 let pool: Pool | null = null;
+let databaseReady = false;
 
 function getDatabaseUrl(): string {
-  const databaseUrl = process.env.DATABASE_URL;
+  const databaseUrl = process.env.APP_DATABASE_URL || process.env.DATABASE_URL;
   if (!databaseUrl) {
-    throw new Error('DATABASE_URL is required.');
+    throw new Error('APP_DATABASE_URL or DATABASE_URL is required.');
   }
   return databaseUrl;
 }
@@ -25,15 +26,25 @@ function normalizeDatabaseUrl(connectionString: string): string {
   }
 }
 
+function shouldUseSsl(): boolean {
+  const sslSetting = process.env.APP_DATABASE_SSL || process.env.DATABASE_SSL;
+  return sslSetting !== 'false';
+}
+
 function getPool(): Pool {
   if (!pool) {
-    const useSsl = process.env.DATABASE_SSL !== 'false';
+    const useSsl = shouldUseSsl();
     pool = new Pool({
       connectionString: normalizeDatabaseUrl(getDatabaseUrl()),
       ssl: useSsl ? { rejectUnauthorized: false } : false,
+      connectionTimeoutMillis: 5000,
     });
   }
   return pool;
+}
+
+export function isDatabaseReady(): boolean {
+  return databaseReady;
 }
 
 export async function query<T extends QueryResultRow = QueryResultRow>(
@@ -101,4 +112,6 @@ export async function initializeDatabase(): Promise<void> {
     CREATE INDEX IF NOT EXISTS notification_runs_status_idx
     ON notification_runs (status, updated_at DESC)
   `);
+
+  databaseReady = true;
 }

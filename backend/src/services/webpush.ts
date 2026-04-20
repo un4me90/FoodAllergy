@@ -15,7 +15,7 @@ function initVapid(): void {
 
   const publicKey = process.env.VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
-  const subject = process.env.VAPID_SUBJECT || process.env.VAPID_EMAIL || 'mailto:admin@example.com';
+  const subject = process.env.VAPID_SUBJECT || process.env.VAPID_EMAIL || 'mailto:admin@foodallergy.local';
 
   if (!publicKey || !privateKey) {
     console.warn('[webpush] VAPID keys are not configured.');
