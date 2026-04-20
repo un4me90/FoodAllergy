@@ -72,7 +72,7 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
         <div class="settings-section">
           <div class="settings-section-title">학교</div>
           <div class="card" style="padding:0.875rem 1rem;display:flex;align-items:center;gap:0.5rem">
-            <span style="font-size:1.25rem">학교</span>
+            <span style="font-size:1.25rem">🏫</span>
             <span style="font-weight:600;color:#1d4ed8">${FIXED_SCHOOL.name}</span>
           </div>
         </div>
@@ -115,7 +115,7 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
       try {
         await syncSubscriptionPreferences();
       } catch {
-        alert('자녀 설정은 저장되었지만 서버 동기화에는 실패했습니다.');
+        alert('자녀 설정은 저장되었지만 서버 동기화에 실패했습니다.');
         return;
       }
     }
@@ -152,8 +152,8 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
     editorSlot.innerHTML = `
       <div class="child-profiles-editor">
         <div class="child-profiles-header">
-          <div class="child-profiles-title">자녀별로 한 명씩 수정해 주세요</div>
-          <div class="child-profiles-subtitle">자녀 수를 맞춘 뒤, 탭을 눌러 각 자녀의 이름과 알레르기를 편집할 수 있습니다.</div>
+          <div class="child-profiles-title">자녀별로 이름과 알레르기를 설정해 주세요.</div>
+          <div class="child-profiles-subtitle">자녀 수를 고른 뒤 탭을 눌러 각 자녀의 이름과 알레르기를 입력할 수 있습니다.</div>
         </div>
 
         <div class="setup-child-count">
@@ -244,7 +244,7 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
           iPhone에서는 Safari에서 홈 화면에 추가한 다음에만 알림을 켤 수 있습니다.<br>
           1. Safari 공유 버튼 선택<br>
           2. 홈 화면에 추가 선택<br>
-          3. 홈 화면 아이콘으로 앱 실행<br>
+          3. 홈 화면 아이콘으로 다시 실행<br>
           4. 다시 설정 화면에서 알림 허용
         </div>
       `;
@@ -312,56 +312,56 @@ export function renderSettings(container: HTMLElement, onBack: () => void): void
     row.appendChild(toggleWrap);
     notifCard.appendChild(row);
 
-    if (subscribed) {
-      const testBtn = document.createElement('button');
-      testBtn.className = 'btn btn-ghost';
-      testBtn.style.cssText = 'margin-top:0.75rem;font-size:0.875rem';
-      testBtn.textContent = '테스트 알림 보내기';
-      testBtn.addEventListener('click', async () => {
-        testBtn.disabled = true;
-        testBtn.textContent = '전송 중...';
-        try {
-          try {
-            await syncSubscriptionPreferences();
-          } catch {
-            // Ignore sync errors before the direct test call.
-          }
+    const testBtn = document.createElement('button');
+    testBtn.className = 'btn btn-ghost';
+    testBtn.style.cssText = 'margin-top:0.75rem;font-size:0.875rem';
+    testBtn.textContent = '테스트 알림 보내기';
+    testBtn.disabled = !subscribed;
 
-          let endpoint: string | undefined;
-          try {
-            const reg = await navigator.serviceWorker.ready;
-            const sub = await reg.pushManager.getSubscription();
-            endpoint = sub?.endpoint;
-          } catch {
-            // Ignore and fall back to local storage below.
-          }
-
-          if (!endpoint) {
-            endpoint = getPushSubscription()?.endpoint ?? undefined;
-          }
-
-          await testPush(endpoint);
-          testBtn.textContent = '전송 완료';
-        } catch (err: any) {
-          testBtn.textContent = `전송 실패: ${err?.message || '알 수 없는 오류'}`;
-        }
-
-        setTimeout(() => {
-          testBtn.textContent = '테스트 알림 보내기';
-          testBtn.disabled = false;
-        }, 4000);
-      });
-      notifCard.appendChild(testBtn);
+    if (!subscribed) {
+      testBtn.style.opacity = '0.55';
+      testBtn.title = '알림을 켜면 테스트할 수 있습니다.';
     }
 
-    const resetBtn = document.createElement('button');
-    resetBtn.className = 'btn btn-ghost';
-    resetBtn.style.cssText = 'margin-top:0.5rem;font-size:0.875rem;color:#dc2626';
-    resetBtn.textContent = '전체 초기화';
-    resetBtn.addEventListener('click', () => {
-      void handleFullReset();
+    testBtn.addEventListener('click', async () => {
+      if (!subscribed) {
+        return;
+      }
+
+      testBtn.disabled = true;
+      testBtn.textContent = '전송 중...';
+      try {
+        try {
+          await syncSubscriptionPreferences();
+        } catch {
+          // Ignore sync errors before the direct test call.
+        }
+
+        let endpoint: string | undefined;
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          const sub = await reg.pushManager.getSubscription();
+          endpoint = sub?.endpoint;
+        } catch {
+          // Ignore and fall back to local storage below.
+        }
+
+        if (!endpoint) {
+          endpoint = getPushSubscription()?.endpoint ?? undefined;
+        }
+
+        await testPush(endpoint);
+        testBtn.textContent = '전송 완료';
+      } catch (err: any) {
+        testBtn.textContent = `전송 실패: ${err?.message || '알 수 없는 오류'}`;
+      }
+
+      setTimeout(() => {
+        testBtn.textContent = '테스트 알림 보내기';
+        testBtn.disabled = !subscribed;
+      }, 4000);
     });
-    notifCard.appendChild(resetBtn);
+    notifCard.appendChild(testBtn);
 
     toggleInput.addEventListener('change', async () => {
       toggleInput.disabled = true;
